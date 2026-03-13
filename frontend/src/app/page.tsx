@@ -5,6 +5,7 @@ import CategoryFilter from "@/components/CategoryFilter";
 import NewsList from "@/components/NewsList";
 import SummaryBox from "@/components/SummaryBox";
 import ThemeSelector from "@/components/ThemeSelector";
+import { getThemeNews } from "@/lib/api";
 import { Category, Theme, ThemeNewsResponse } from "@/types/news";
 
 const themes: Theme[] = ["반도체", "AI", "방산"];
@@ -31,17 +32,7 @@ export default function HomePage() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(
-          `/api/themes/${encodeURIComponent(
-            selectedTheme
-          )}/news?category=${encodeURIComponent(selectedCategory)}`
-        );
-
-        if (!response.ok) {
-          throw new Error("뉴스 데이터를 불러오지 못했습니다.");
-        }
-
-        const data: ThemeNewsResponse = await response.json();
+        const data = await getThemeNews(selectedTheme, selectedCategory);
         setNewsData(data);
       } catch (error) {
         console.error(error);
