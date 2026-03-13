@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from routers.debug import router as debug_router
 from routers.themes import router as themes_router
 
 app = FastAPI(
@@ -24,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(debug_router)
 app.include_router(themes_router)
 
 

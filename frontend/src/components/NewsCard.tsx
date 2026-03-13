@@ -9,8 +9,14 @@ export default function NewsCard({ article }: NewsCardProps) {
     <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-gray-500">
         <span className="font-medium text-gray-700">{article.source}</span>
-        <span>•</span>
-        <span>{article.publishedAt}</span>
+
+        {article.publishedAt && (
+          <>
+            <span>•</span>
+            <span>{article.publishedAt}</span>
+          </>
+        )}
+
         <span>•</span>
         <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
           {article.category}

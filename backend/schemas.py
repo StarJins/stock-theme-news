@@ -26,7 +26,7 @@ class NewsItem(BaseModel):
     theme: ThemeEnum
     title: str
     source: str
-    published_at: str
+    publishedAt: str
     category: NewsCategoryEnum
     summary: str
     url: str
