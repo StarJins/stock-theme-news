@@ -55,9 +55,17 @@ export default function HomePage() {
           onSelectCategory={setSelectedCategory}
         />
 
-        <SummaryBox summary={themeSummaries[selectedTheme]} />
+        <SummaryBox
+          theme={selectedTheme}
+          category={selectedCategory}
+          summary={themeSummaries[selectedTheme]}
+        />
 
-        <NewsList articles={filteredArticles} />
+        <NewsList
+          articles={filteredArticles}
+          selectedTheme={selectedTheme}
+          selectedCategory={selectedCategory}
+        />
       </div>
     </main>
   );
