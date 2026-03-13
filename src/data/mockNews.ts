@@ -41,7 +41,6 @@ export const mockArticles: NewsItem[] = [
       "반도체 업계 전반에서 고급 인재 확보 경쟁이 이어지고 있다는 보도입니다.",
     url: "https://example.com/3",
   },
-
   {
     id: 4,
     theme: "AI",
@@ -75,7 +74,6 @@ export const mockArticles: NewsItem[] = [
       "AI 인력 수요 증가에 대응하기 위해 대학과 교육기관이 관련 교육 프로그램을 넓히고 있습니다.",
     url: "https://example.com/6",
   },
-
   {
     id: 7,
     theme: "방산",

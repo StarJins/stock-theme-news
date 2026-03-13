@@ -14,3 +14,10 @@ export type NewsItem = {
   summary: string;
   url: string;
 };
+
+export type ThemeNewsResponse = {
+  theme: Theme;
+  category: Category;
+  summary: string;
+  articles: NewsItem[];
+};

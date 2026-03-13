@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import CategoryFilter from "@/components/CategoryFilter";
 import NewsList from "@/components/NewsList";
 import SummaryBox from "@/components/SummaryBox";
 import ThemeSelector from "@/components/ThemeSelector";
-import { Category, Theme } from "@/types/news";
-import { mockArticles, themeSummaries } from "@/data/mockNews";
+import { Category, Theme, ThemeNewsResponse } from "@/types/news";
 
 const themes: Theme[] = ["반도체", "AI", "방산"];
 const categories: Category[] = ["전체", "경제", "사회", "정치"];
@@ -15,6 +14,10 @@ export default function HomePage() {
   const [selectedTheme, setSelectedTheme] = useState<Theme>("반도체");
   const [selectedCategory, setSelectedCategory] = useState<Category>("전체");
 
+  const [newsData, setNewsData] = useState<ThemeNewsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const today = new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "long",
@@ -22,14 +25,34 @@ export default function HomePage() {
     weekday: "long",
   });
 
-  const filteredArticles = useMemo(() => {
-    return mockArticles.filter((article) => {
-      const matchesTheme = article.theme === selectedTheme;
-      const matchesCategory =
-        selectedCategory === "전체" || article.category === selectedCategory;
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
 
-      return matchesTheme && matchesCategory;
-    });
+        const response = await fetch(
+          `/api/themes/${encodeURIComponent(
+            selectedTheme
+          )}/news?category=${encodeURIComponent(selectedCategory)}`
+        );
+
+        if (!response.ok) {
+          throw new Error("뉴스 데이터를 불러오지 못했습니다.");
+        }
+
+        const data: ThemeNewsResponse = await response.json();
+        setNewsData(data);
+      } catch (error) {
+        console.error(error);
+        setErrorMessage("뉴스 데이터를 불러오는 중 오류가 발생했습니다.");
+        setNewsData(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNews();
   }, [selectedTheme, selectedCategory]);
 
   return (
@@ -55,17 +78,31 @@ export default function HomePage() {
           onSelectCategory={setSelectedCategory}
         />
 
-        <SummaryBox
-          theme={selectedTheme}
-          category={selectedCategory}
-          summary={themeSummaries[selectedTheme]}
-        />
+        {isLoading ? (
+          <section className="mb-8 rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+            <p className="text-base font-medium text-gray-700">
+              뉴스를 불러오는 중입니다...
+            </p>
+          </section>
+        ) : errorMessage ? (
+          <section className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-8 text-center shadow-sm">
+            <p className="text-base font-medium text-red-700">{errorMessage}</p>
+          </section>
+        ) : newsData ? (
+          <>
+            <SummaryBox
+              theme={selectedTheme}
+              category={selectedCategory}
+              summary={newsData.summary}
+            />
 
-        <NewsList
-          articles={filteredArticles}
-          selectedTheme={selectedTheme}
-          selectedCategory={selectedCategory}
-        />
+            <NewsList
+              articles={newsData.articles}
+              selectedTheme={selectedTheme}
+              selectedCategory={selectedCategory}
+            />
+          </>
+        ) : null}
       </div>
     </main>
   );
