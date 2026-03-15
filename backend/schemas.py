@@ -37,3 +37,6 @@ class ThemeNewsResponse(BaseModel):
     category: CategoryEnum
     summary: str
     articles: list[NewsItem]
+    page: int
+    page_size: int
+    has_more: bool

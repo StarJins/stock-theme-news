@@ -15,11 +15,11 @@ export async function GET(
     }
 
     const { theme } = await context.params;
-    const category = request.nextUrl.searchParams.get("category") ?? "전체";
+    const search = request.nextUrl.searchParams.toString();
 
     const backendUrl = `${BACKEND_API_BASE_URL}/themes/${encodeURIComponent(
       theme
-    )}/news?category=${encodeURIComponent(category)}`;
+    )}/news?${search}`;
 
     const response = await fetch(backendUrl, {
       method: "GET",
@@ -27,7 +27,6 @@ export async function GET(
     });
 
     const data = await response.json();
-
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error(error);

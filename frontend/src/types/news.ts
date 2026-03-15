@@ -20,4 +20,7 @@ export type ThemeNewsResponse = {
   category: Category;
   summary: string;
   articles: NewsItem[];
+  page: number;
+  page_size: number;
+  has_more: boolean;
 };
