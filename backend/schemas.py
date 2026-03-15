@@ -30,6 +30,7 @@ class NewsItem(BaseModel):
     category: NewsCategoryEnum
     summary: str
     url: str
+    relevanceScore: float | None = None
 
 
 class ThemeNewsResponse(BaseModel):
@@ -40,3 +41,7 @@ class ThemeNewsResponse(BaseModel):
     page: int
     page_size: int
     has_more: bool
+    total_articles: int
+    generated_at: str | None = None
+    expires_at: str | None = None
+    cache_hit: bool = False

@@ -6,15 +6,27 @@ export async function getThemeNews(
   page: number = 1,
   pageSize: number = 10
 ): Promise<ThemeNewsResponse> {
-  const url = `/api/themes/${encodeURIComponent(
-    theme
-  )}/news?category=${encodeURIComponent(category)}&page=${page}&page_size=${pageSize}`;
+  const searchParams = new URLSearchParams({
+    category,
+    page: String(page),
+    page_size: String(pageSize),
+  });
 
-  const response = await fetch(url);
+  const response = await fetch(
+    `/api/themes/${encodeURIComponent(theme)}/news?${searchParams.toString()}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    }
+  );
+
+  const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error("뉴스 데이터를 불러오지 못했습니다.");
+    const message =
+      data?.message ?? "뉴스 데이터를 불러오는 중 오류가 발생했습니다.";
+    throw new Error(message);
   }
 
-  return response.json();
+  return data;
 }

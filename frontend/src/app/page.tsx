@@ -20,6 +20,8 @@ export default function HomePage() {
   const [summary, setSummary] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [totalArticles, setTotalArticles] = useState(0);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -50,12 +52,16 @@ export default function HomePage() {
       setArticles(data.articles);
       setSummary(data.summary);
       setHasMore(data.has_more);
+      setTotalArticles(data.total_articles);
+      setGeneratedAt(data.generated_at ?? null);
     } catch (error) {
       console.error(error);
       setErrorMessage("뉴스 데이터를 불러오는 중 오류가 발생했습니다.");
       setArticles([]);
       setSummary("");
       setHasMore(false);
+      setTotalArticles(0);
+      setGeneratedAt(null);
     } finally {
       setIsLoading(false);
     }
@@ -78,6 +84,8 @@ export default function HomePage() {
       setArticles((prev) => [...prev, ...data.articles]);
       setPage(nextPage);
       setHasMore(data.has_more);
+      setTotalArticles(data.total_articles);
+      setGeneratedAt(data.generated_at ?? null);
     } catch (error) {
       console.error(error);
     } finally {
@@ -161,12 +169,14 @@ export default function HomePage() {
               theme={selectedTheme}
               category={selectedCategory}
               summary={summary}
+              generatedAt={generatedAt}
             />
 
             <NewsList
               articles={articles}
               selectedTheme={selectedTheme}
               selectedCategory={selectedCategory}
+              totalArticles={totalArticles}
             />
 
             <div

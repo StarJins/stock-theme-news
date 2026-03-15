@@ -21,6 +21,15 @@ export default function NewsCard({ article }: NewsCardProps) {
         <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
           {article.category}
         </span>
+
+        {typeof article.relevanceScore === "number" && (
+          <>
+            <span>•</span>
+            <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+              연관도 {article.relevanceScore.toFixed(2)}
+            </span>
+          </>
+        )}
       </div>
 
       <h3 className="mb-3 text-lg font-semibold leading-7 text-black">

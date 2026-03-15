@@ -13,6 +13,7 @@ export type NewsItem = {
   category: NewsCategory;
   summary: string;
   url: string;
+  relevanceScore?: number | null;
 };
 
 export type ThemeNewsResponse = {
@@ -23,4 +24,8 @@ export type ThemeNewsResponse = {
   page: number;
   page_size: number;
   has_more: boolean;
+  total_articles: number;
+  generated_at?: string | null;
+  expires_at?: string | null;
+  cache_hit?: boolean;
 };

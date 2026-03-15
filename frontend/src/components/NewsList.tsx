@@ -5,12 +5,14 @@ type NewsListProps = {
   articles: NewsItem[];
   selectedTheme: string;
   selectedCategory: string;
+  totalArticles?: number;
 };
 
 export default function NewsList({
   articles,
   selectedTheme,
   selectedCategory,
+  totalArticles,
 }: NewsListProps) {
   return (
     <section>
@@ -23,7 +25,7 @@ export default function NewsList({
         </div>
 
         <div className="text-sm font-medium text-gray-600">
-          총 {articles.length}건
+          현재 {articles.length}건 표시 / 전체 {totalArticles ?? articles.length}건
         </div>
       </div>
 
