@@ -1,49 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mockArticles, themeSummaries } from "@/data/mockNews";
-import { Category, Theme, ThemeNewsResponse } from "@/types/news";
 
-const validThemes: Theme[] = ["반도체", "AI", "방산"];
-const validCategories: Category[] = ["전체", "경제", "사회", "정치"];
+const BACKEND_API_BASE_URL = process.env.BACKEND_API_BASE_URL;
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ theme: string }> }
 ) {
-  const { theme } = await context.params;
-  const decodedTheme = decodeURIComponent(theme) as Theme;
+  try {
+    if (!BACKEND_API_BASE_URL) {
+      return NextResponse.json(
+        { message: "BACKEND_API_BASE_URL 환경변수가 설정되지 않았습니다." },
+        { status: 500 }
+      );
+    }
 
-  if (!validThemes.includes(decodedTheme)) {
+    const { theme } = await context.params;
+    const category = request.nextUrl.searchParams.get("category") ?? "전체";
+
+    const backendUrl = `${BACKEND_API_BASE_URL}/themes/${encodeURIComponent(
+      theme
+    )}/news?category=${encodeURIComponent(category)}`;
+
+    const response = await fetch(backendUrl, {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    const data = await response.json();
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error(error);
+
     return NextResponse.json(
-      { message: "유효하지 않은 테마입니다." },
-      { status: 400 }
+      { message: "백엔드 프록시 요청 중 오류가 발생했습니다." },
+      { status: 500 }
     );
   }
-
-  const categoryParam =
-    request.nextUrl.searchParams.get("category") ?? "전체";
-  const category = categoryParam as Category;
-
-  if (!validCategories.includes(category)) {
-    return NextResponse.json(
-      { message: "유효하지 않은 카테고리입니다." },
-      { status: 400 }
-    );
-  }
-
-  const filteredArticles = mockArticles.filter((article) => {
-    const matchesTheme = article.theme === decodedTheme;
-    const matchesCategory =
-      category === "전체" || article.category === category;
-
-    return matchesTheme && matchesCategory;
-  });
-
-  const response: ThemeNewsResponse = {
-    theme: decodedTheme,
-    category,
-    summary: themeSummaries[decodedTheme],
-    articles: filteredArticles,
-  };
-
-  return NextResponse.json(response);
 }
