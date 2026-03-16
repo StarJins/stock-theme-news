@@ -1,6 +1,6 @@
-__pycache__
-
-# env files (can opt-in for committing if needed)
-.env*
-
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
 runtime_cache/
