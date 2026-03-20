@@ -24,7 +24,9 @@ export async function getThemeNews(
 
   if (!response.ok) {
     const message =
-      data?.message ?? "뉴스 데이터를 불러오는 중 오류가 발생했습니다.";
+      data?.detail ||
+      data?.message ||
+      "뉴스 데이터를 불러오는 중 오류가 발생했습니다.";
     throw new Error(message);
   }
 

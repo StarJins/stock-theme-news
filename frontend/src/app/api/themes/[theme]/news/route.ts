@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getThemeNewsPage } from "@/server/news/service";
+import { Category, Theme } from "@/types/news";
 
-const backendApiBaseUrl = process.env.BACKEND_API_BASE_URL;
+export const runtime = "nodejs";
+export const preferredRegion = "icn1";
 
-function buildBackendUrl(theme: string, searchParams: URLSearchParams) {
-  if (!backendApiBaseUrl) {
-    throw new Error("BACKEND_API_BASE_URL environment variable is missing.");
-  }
+const THEMES: Theme[] = ["반도체", "AI", "방산"];
+const CATEGORIES: Category[] = ["전체", "경제", "사회", "정치"];
 
-  const normalizedBaseUrl = backendApiBaseUrl.replace(/\/$/, "");
-  const url = new URL(
-    `${normalizedBaseUrl}/themes/${encodeURIComponent(theme)}/news`
-  );
+function isTheme(value: string): value is Theme {
+  return THEMES.includes(value as Theme);
+}
 
-  searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
-
-  return url;
+function isCategory(value: string): value is Category {
+  return CATEGORIES.includes(value as Category);
 }
 
 export async function GET(
@@ -24,39 +21,49 @@ export async function GET(
   context: { params: Promise<{ theme: string }> }
 ) {
   try {
-    const { theme } = await context.params;
-    const backendUrl = buildBackendUrl(theme, request.nextUrl.searchParams);
+    const { theme: rawTheme } = await context.params;
 
-    const response = await fetch(backendUrl, {
-      method: "GET",
-      cache: "no-store",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    const contentType = response.headers.get("content-type") ?? "";
-
-    if (!contentType.includes("application/json")) {
-      const text = await response.text();
+    if (!isTheme(rawTheme)) {
       return NextResponse.json(
-        {
-          message: "백엔드 응답 형식이 올바르지 않습니다.",
-          detail: text,
-        },
-        { status: 502 }
+        { message: "지원하지 않는 테마입니다." },
+        { status: 400 }
       );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data, {
-      status: response.status,
+    const categoryParam =
+      request.nextUrl.searchParams.get("category") ?? "전체";
+    const pageParam = Number(request.nextUrl.searchParams.get("page") ?? "1");
+    const pageSizeParam = Number(
+      request.nextUrl.searchParams.get("page_size") ?? "10"
+    );
+
+    const category = isCategory(categoryParam) ? categoryParam : "전체";
+    const page = Number.isFinite(pageParam) && pageParam >= 1 ? pageParam : 1;
+    const pageSize =
+      Number.isFinite(pageSizeParam) &&
+      pageSizeParam >= 1 &&
+      pageSizeParam <= 20
+        ? pageSizeParam
+        : 10;
+
+    const data = await getThemeNewsPage({
+      theme: rawTheme,
+      category,
+      page,
+      pageSize,
     });
+
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error("[theme-news-proxy]", error);
+    console.error("[theme-news-route]", error);
 
     return NextResponse.json(
-      { message: "백엔드 프록시 요청 중 오류가 발생했습니다." },
+      {
+        message:
+          error instanceof Error
+            ? error.message
+            : "뉴스 데이터를 불러오는 중 오류가 발생했습니다.",
+      },
       { status: 500 }
     );
   }
