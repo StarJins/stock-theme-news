@@ -16,7 +16,6 @@ export async function getThemeNews(
     `/api/themes/${encodeURIComponent(theme)}/news?${searchParams.toString()}`,
     {
       method: "GET",
-      cache: "no-store",
     }
   );
 

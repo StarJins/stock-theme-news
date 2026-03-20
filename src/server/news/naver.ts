@@ -1,5 +1,6 @@
 import { Theme } from "@/types/news";
 import {
+  CACHE_TTL_SECONDS,
   formatDateToKst,
   RawNaverNewsItem,
   THEME_CONFIGS,
@@ -55,7 +56,10 @@ export async function searchNaverNews(
       "X-Naver-Client-Secret": clientSecret,
       Accept: "application/json",
     },
-    next: { revalidate: 0 },
+    next: {
+      revalidate: CACHE_TTL_SECONDS,
+      tags: ["naver-news", `naver-news:${theme}`],
+    },
   });
 
   if (!response.ok) {

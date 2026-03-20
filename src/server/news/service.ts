@@ -80,12 +80,20 @@ async function collectThemeNews(theme: Theme): Promise<ThemeCacheDocument> {
   };
 }
 
-function getCachedThemeCollector(theme: Theme) {
-  return unstable_cache(() => collectThemeNews(theme), ["theme-news", theme], {
+const cachedThemeCollectors: Record<Theme, () => Promise<ThemeCacheDocument>> = {
+  반도체: unstable_cache(() => collectThemeNews("반도체"), ["theme-news", "반도체"], {
     revalidate: CACHE_TTL_SECONDS,
-    tags: ["theme-news", `theme-news:${theme}`],
-  });
-}
+    tags: ["theme-news", "theme-news:반도체"],
+  }),
+  AI: unstable_cache(() => collectThemeNews("AI"), ["theme-news", "AI"], {
+    revalidate: CACHE_TTL_SECONDS,
+    tags: ["theme-news", "theme-news:AI"],
+  }),
+  방산: unstable_cache(() => collectThemeNews("방산"), ["theme-news", "방산"], {
+    revalidate: CACHE_TTL_SECONDS,
+    tags: ["theme-news", "theme-news:방산"],
+  }),
+};
 
 export async function getThemeNewsPage(params: {
   theme: Theme;
@@ -94,7 +102,7 @@ export async function getThemeNewsPage(params: {
   pageSize: number;
 }): Promise<ThemeNewsResponse> {
   const { theme, category, page, pageSize } = params;
-  const cacheDoc = await getCachedThemeCollector(theme)();
+  const cacheDoc = await cachedThemeCollectors[theme]();
 
   return buildPagedResponse({
     theme,
