@@ -3,7 +3,6 @@ import { getThemeNewsPage } from "@/server/news/service";
 import { Category, Theme } from "@/types/news";
 
 export const runtime = "nodejs";
-export const preferredRegion = ["hnd1"];
 
 const THEMES: Theme[] = ["반도체", "AI", "방산"];
 const CATEGORIES: Category[] = ["전체", "경제", "사회", "정치"];
