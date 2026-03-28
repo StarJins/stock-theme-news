@@ -22,9 +22,11 @@ function cleanText(text: string) {
 
 function parsePubDate(pubDate: string) {
   const date = new Date(pubDate);
+
   if (Number.isNaN(date.getTime())) {
     return pubDate;
   }
+
   return formatDateToKst(date);
 }
 
@@ -49,13 +51,23 @@ export async function searchNaverNews(
     sort: "date",
   });
 
-  const response = await fetch(`${NAVER_NEWS_API_URL}?${params.toString()}`, {
+  const requestUrl = `${NAVER_NEWS_API_URL}?${params.toString()}`;
+
+  console.log(
+    `[naver-fetch] theme=${theme} start=${start} display=${display} at=${new Date().toISOString()}`
+  );
+
+  const response = await fetch(requestUrl, {
     method: "GET",
     headers: {
       "X-Naver-Client-Id": clientId,
       "X-Naver-Client-Secret": clientSecret,
       Accept: "application/json",
     },
+
+    // 핵심: Next/Vercel Data Cache에 명시적으로 올리기
+    cache: "force-cache",
+
     next: {
       revalidate: CACHE_TTL_SECONDS,
       tags: ["naver-news", `naver-news:${theme}`],

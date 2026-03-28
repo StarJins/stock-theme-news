@@ -21,11 +21,13 @@ function canonicalUrl(item: { originallink: string; link: string }) {
 }
 
 async function collectThemeNews(theme: Theme): Promise<ThemeCacheDocument> {
+  console.log(
+    `[collect-theme-news] theme=${theme} at=${new Date().toISOString()}`
+  );
+
   const result = await searchNaverNews(theme, Math.min(MAX_CANDIDATES, 100), 1);
 
-  const todayCandidates = result.items.filter((item) =>
-    isTodayKst(item.pubDate)
-  );
+  const todayCandidates = result.items.filter((item) => isTodayKst(item.pubDate));
 
   const dedupedCandidates = dedupeNewsItems(
     todayCandidates.map((item) => ({
@@ -59,6 +61,7 @@ async function collectThemeNews(theme: Theme): Promise<ThemeCacheDocument> {
       if ((b.relevance_score ?? 0) !== (a.relevance_score ?? 0)) {
         return (b.relevance_score ?? 0) - (a.relevance_score ?? 0);
       }
+
       return b.publishedAt.localeCompare(a.publishedAt);
     });
 
@@ -85,10 +88,12 @@ const cachedThemeCollectors: Record<Theme, () => Promise<ThemeCacheDocument>> = 
     revalidate: CACHE_TTL_SECONDS,
     tags: ["theme-news", "theme-news:반도체"],
   }),
+
   AI: unstable_cache(() => collectThemeNews("AI"), ["theme-news", "AI"], {
     revalidate: CACHE_TTL_SECONDS,
     tags: ["theme-news", "theme-news:AI"],
   }),
+
   방산: unstable_cache(() => collectThemeNews("방산"), ["theme-news", "방산"], {
     revalidate: CACHE_TTL_SECONDS,
     tags: ["theme-news", "theme-news:방산"],
@@ -102,7 +107,12 @@ export async function getThemeNewsPage(params: {
   pageSize: number;
 }): Promise<ThemeNewsResponse> {
   const { theme, category, page, pageSize } = params;
+
   const cacheDoc = await cachedThemeCollectors[theme]();
+
+  console.log(
+    `[get-theme-news-page] theme=${theme} category=${category} page=${page} pageSize=${pageSize} fetched_at=${cacheDoc.fetched_at} expires_at=${cacheDoc.expires_at}`
+  );
 
   return buildPagedResponse({
     theme,
