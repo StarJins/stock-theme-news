@@ -1,4 +1,4 @@
-import { cacheLife, cacheTag } from "next/cache";
+import { cacheLife } from "next/cache";
 import { Category, Theme, ThemeNewsResponse } from "@/types/news";
 import {
   buildPagedResponse,
@@ -7,14 +7,13 @@ import {
   computeRelevanceScore,
   dedupeNewsItems,
   inferCategory,
-  isTodayKst,
   MAX_CANDIDATES,
   nowKstDateString,
   nowKstIsoString,
-  THEME_CONFIGS,
+  THEME_COLLECTION_PROFILES,
   ThemeCacheDocument,
 } from "@/server/news/shared";
-import { searchNaverNews } from "@/server/news/naver";
+import { collectTodayNewsUntilOld } from "@/server/news/naver";
 
 function canonicalUrl(item: { originallink: string; link: string }) {
   return (item.originallink || item.link || "").trim();
@@ -31,36 +30,48 @@ async function collectThemeNews(theme: Theme): Promise<ThemeCacheDocument> {
     `[collect-theme-news] theme=${theme} at=${new Date().toISOString()}`
   );
 
-  const result = await searchNaverNews(theme, Math.min(MAX_CANDIDATES, 100), 1);
+  const profile = THEME_COLLECTION_PROFILES[theme];
+  const collectedByQueries = await Promise.all(
+    profile.queries.map(async (query) => {
+      const result = await collectTodayNewsUntilOld(query);
 
-  const todayCandidates = result.items.filter((item) => isTodayKst(item.pubDate));
+      return result.items.map((item) => ({
+        ...item,
+        matched_query: query,
+        url: canonicalUrl(item),
+      }));
+    })
+  );
 
-  const dedupedCandidates = dedupeNewsItems(
-    todayCandidates.map((item) => ({
-      ...item,
-      url: canonicalUrl(item),
-    }))
+  const mergedCandidates = collectedByQueries.flat();
+
+  const dedupedCandidates = dedupeNewsItems(mergedCandidates).slice(
+    0,
+    MAX_CANDIDATES
   );
 
   const rankedArticles = dedupedCandidates
     .map((item) => {
-      const category = inferCategory(item.title, item.description);
+      const category = inferCategory(item.title, item.description, theme);
       const relevanceScore = computeRelevanceScore(
         theme,
         item.title,
         item.description,
-        item.pubDate
+        item.pubDate,
+        category
       );
 
       return {
         theme,
         title: item.title,
         source: "네이버 뉴스 검색",
+        publisher: null,
         publishedAt: item.pubDate,
         category,
         summary: item.description,
         url: item.url,
         relevance_score: relevanceScore,
+        matched_query: item.matched_query ?? null,
       };
     })
     .sort((a, b) => {
@@ -78,11 +89,11 @@ async function collectThemeNews(theme: Theme): Promise<ThemeCacheDocument> {
 
   return {
     theme,
-    query: THEME_CONFIGS[theme].query,
+    queries: profile.queries,
     date: nowKstDateString(),
     fetched_at: fetchedAt,
     expires_at: expiresAt,
-    candidate_count: Math.min(result.display, MAX_CANDIDATES),
+    candidate_count: mergedCandidates.length,
     article_count: rankedArticles.length,
     summary: buildSummary(theme, rankedArticles),
     articles: rankedArticles,
@@ -100,7 +111,7 @@ export async function getThemeNewsPage(params: {
   const cacheDoc = await collectThemeNews(theme);
 
   console.log(
-    `[get-theme-news-page] theme=${theme} category=${category} page=${page} pageSize=${pageSize} fetched_at=${cacheDoc.fetched_at} expires_at=${cacheDoc.expires_at}`
+    `[get-theme-news-page] theme=${theme} category=${category} page=${page} pageSize=${pageSize} fetched_at=${cacheDoc.fetched_at} expires_at=${cacheDoc.expires_at} candidates=${cacheDoc.candidate_count} articles=${cacheDoc.article_count}`
   );
 
   return buildPagedResponse({

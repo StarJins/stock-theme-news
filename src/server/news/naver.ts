@@ -1,9 +1,12 @@
-import { Theme } from "@/types/news";
 import {
   CACHE_TTL_SECONDS,
   formatDateToKst,
+  NAVER_MAX_START,
+  NAVER_PAGE_SIZE,
   RawNaverNewsItem,
-  THEME_CONFIGS,
+  isTodayKst,
+  MAX_OLDER_PAGE_STREAK,
+  STOP_ON_EMPTY_TODAY_PAGE,
 } from "@/server/news/shared";
 
 const NAVER_NEWS_API_URL = "https://openapi.naver.com/v1/search/news.json";
@@ -30,9 +33,9 @@ function parsePubDate(pubDate: string) {
   return formatDateToKst(date);
 }
 
-export async function searchNaverNews(
-  theme: Theme,
-  display = 100,
+export async function searchNaverNewsByQuery(
+  query: string,
+  display = NAVER_PAGE_SIZE,
   start = 1
 ): Promise<{ total: number; display: number; items: RawNaverNewsItem[] }> {
   const clientId = process.env.NAVER_CLIENT_ID;
@@ -45,7 +48,7 @@ export async function searchNaverNews(
   }
 
   const params = new URLSearchParams({
-    query: THEME_CONFIGS[theme].query,
+    query,
     display: String(display),
     start: String(start),
     sort: "date",
@@ -54,7 +57,7 @@ export async function searchNaverNews(
   const requestUrl = `${NAVER_NEWS_API_URL}?${params.toString()}`;
 
   console.log(
-    `[naver-fetch] theme=${theme} start=${start} display=${display} at=${new Date().toISOString()}`
+    `[naver-fetch] query=${query} start=${start} display=${display} at=${new Date().toISOString()}`
   );
 
   const response = await fetch(requestUrl, {
@@ -64,10 +67,7 @@ export async function searchNaverNews(
       "X-Naver-Client-Secret": clientSecret,
       Accept: "application/json",
     },
-
-    // 핵심: Next/Vercel Data Cache에 명시적으로 올리기
     cache: "force-cache",
-
     next: {
       revalidate: CACHE_TTL_SECONDS,
     },
@@ -100,5 +100,48 @@ export async function searchNaverNews(
       description: cleanText(item.description ?? ""),
       pubDate: parsePubDate(item.pubDate ?? ""),
     })),
+  };
+}
+
+export async function collectTodayNewsUntilOld(query: string) {
+  const allTodayItems: RawNaverNewsItem[] = [];
+  let start = 1;
+  let total = 0;
+  let olderPageStreak = 0;
+
+  while (start <= NAVER_MAX_START) {
+    const page = await searchNaverNewsByQuery(query, NAVER_PAGE_SIZE, start);
+
+    total = page.total;
+
+    if (!page.items.length) {
+      break;
+    }
+
+    const todayItems = page.items.filter((item) => isTodayKst(item.pubDate));
+    allTodayItems.push(...todayItems);
+
+    const hasOlderItems = page.items.some((item) => !isTodayKst(item.pubDate));
+
+    if (todayItems.length === 0 && STOP_ON_EMPTY_TODAY_PAGE) {
+      break;
+    }
+
+    if (hasOlderItems) {
+      olderPageStreak += 1;
+    } else {
+      olderPageStreak = 0;
+    }
+
+    if (olderPageStreak > MAX_OLDER_PAGE_STREAK) {
+      break;
+    }
+
+    start += NAVER_PAGE_SIZE;
+  }
+
+  return {
+    total,
+    items: allTodayItems,
   };
 }

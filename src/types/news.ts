@@ -1,7 +1,5 @@
 export type Theme = "반도체" | "AI" | "방산";
-
 export type Category = "전체" | "경제" | "사회" | "정치";
-
 export type NewsCategory = "경제" | "사회" | "정치";
 
 export type NewsItem = {
@@ -14,6 +12,8 @@ export type NewsItem = {
   summary: string;
   url: string;
   relevanceScore?: number | null;
+  publisher?: string | null;
+  matchedQuery?: string | null;
 };
 
 export type ThemeNewsResponse = {
