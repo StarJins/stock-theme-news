@@ -6,6 +6,11 @@
 3. 뉴스 카드에 네이버 api에서 제공해주는 description을 전부 보여줘야 할지?
 4. 현재 10분단위 캐싱인데, 새로고침 버튼을 추가할지?
 
+cache run command
+- npm install
+- npm run build
+- NEXT_PRIVATE_DEBUG_CACHE=1 npm run start
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
