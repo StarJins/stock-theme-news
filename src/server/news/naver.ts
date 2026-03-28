@@ -70,7 +70,6 @@ export async function searchNaverNews(
 
     next: {
       revalidate: CACHE_TTL_SECONDS,
-      tags: ["naver-news", `naver-news:${theme}`],
     },
   });
 

@@ -27,8 +27,6 @@ async function collectThemeNews(theme: Theme): Promise<ThemeCacheDocument> {
     revalidate: CACHE_TTL_SECONDS,
   });
 
-  cacheTag("theme-news", `theme-news:${theme}`);
-
   console.log(
     `[collect-theme-news] theme=${theme} at=${new Date().toISOString()}`
   );
