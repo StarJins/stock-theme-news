@@ -29,12 +29,16 @@ export default function HomePage() {
 
   const observerRef = useRef<HTMLDivElement | null>(null);
 
-  const today = new Date().toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "long",
-  });
+  const [today, setToday] = useState("");
+  useEffect(() => {
+    setToday(
+      new Date().toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    );
+  }, []);
 
   const resetAndLoadFirstPage = useCallback(async () => {
     try {
