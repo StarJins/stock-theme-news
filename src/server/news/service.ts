@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { Category, Theme, ThemeNewsResponse } from "@/types/news";
 import {
   buildPagedResponse,
@@ -21,6 +21,14 @@ function canonicalUrl(item: { originallink: string; link: string }) {
 }
 
 async function collectThemeNews(theme: Theme): Promise<ThemeCacheDocument> {
+  "use cache: remote";
+
+  cacheLife({
+    revalidate: CACHE_TTL_SECONDS,
+  });
+
+  cacheTag("theme-news", `theme-news:${theme}`);
+
   console.log(
     `[collect-theme-news] theme=${theme} at=${new Date().toISOString()}`
   );
@@ -67,7 +75,7 @@ async function collectThemeNews(theme: Theme): Promise<ThemeCacheDocument> {
 
   const fetchedAt = nowKstIsoString();
   const expiresAt = new Date(
-    new Date(nowKstIsoString()).getTime() + CACHE_TTL_SECONDS * 1000
+    new Date(fetchedAt).getTime() + CACHE_TTL_SECONDS * 1000
   ).toISOString();
 
   return {
@@ -83,23 +91,6 @@ async function collectThemeNews(theme: Theme): Promise<ThemeCacheDocument> {
   };
 }
 
-const cachedThemeCollectors: Record<Theme, () => Promise<ThemeCacheDocument>> = {
-  반도체: unstable_cache(() => collectThemeNews("반도체"), ["theme-news", "반도체"], {
-    revalidate: CACHE_TTL_SECONDS,
-    tags: ["theme-news", "theme-news:반도체"],
-  }),
-
-  AI: unstable_cache(() => collectThemeNews("AI"), ["theme-news", "AI"], {
-    revalidate: CACHE_TTL_SECONDS,
-    tags: ["theme-news", "theme-news:AI"],
-  }),
-
-  방산: unstable_cache(() => collectThemeNews("방산"), ["theme-news", "방산"], {
-    revalidate: CACHE_TTL_SECONDS,
-    tags: ["theme-news", "theme-news:방산"],
-  }),
-};
-
 export async function getThemeNewsPage(params: {
   theme: Theme;
   category: Category;
@@ -108,7 +99,7 @@ export async function getThemeNewsPage(params: {
 }): Promise<ThemeNewsResponse> {
   const { theme, category, page, pageSize } = params;
 
-  const cacheDoc = await cachedThemeCollectors[theme]();
+  const cacheDoc = await collectThemeNews(theme);
 
   console.log(
     `[get-theme-news-page] theme=${theme} category=${category} page=${page} pageSize=${pageSize} fetched_at=${cacheDoc.fetched_at} expires_at=${cacheDoc.expires_at}`
