@@ -33,8 +33,8 @@ export default function SummaryBox({
   const formattedGeneratedAt = formatGeneratedAt(generatedAt);
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
         <span className="rounded-full bg-black px-3 py-1 text-sm font-semibold text-white">
           선택 테마: {theme}
         </span>
@@ -48,11 +48,11 @@ export default function SummaryBox({
         )}
       </div>
 
-      <h2 className="mb-3 text-3xl font-extrabold tracking-tight text-gray-900">
+      <h2 className="mb-3 text-lg font-semibold leading-7 text-gray-900">
         오늘의 한줄 요약
       </h2>
 
-      <p className="text-lg leading-8 text-gray-800">{summary}</p>
+      <p className="text-base leading-7 text-gray-800">{summary}</p>
     </section>
   );
 }

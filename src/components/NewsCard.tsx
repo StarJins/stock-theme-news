@@ -70,7 +70,7 @@ export default function NewsCard({ article }: NewsCardProps) {
           href={article.url}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98]"
+          className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98]"
         >
           원문 보기
         </a>

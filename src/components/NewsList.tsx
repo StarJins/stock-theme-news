@@ -16,13 +16,11 @@ export default function NewsList({
 }: NewsListProps) {
   return (
     <section className="space-y-4">
-      <div className="space-y-1">
+      <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
         <h2 className="text-xl font-semibold text-gray-900">뉴스 리스트</h2>
         <p className="text-sm text-gray-600">
-          {selectedTheme} 테마 / {selectedCategory} 기준 결과
-        </p>
-        <p className="text-sm text-gray-500">
-          현재 {articles.length}건 표시 / 전체 {totalArticles ?? articles.length}건
+          {selectedTheme} 테마 / {selectedCategory} 기준 결과 · 현재 {articles.length}건
+          표시 / 전체 {totalArticles ?? articles.length}건
         </p>
       </div>
 
