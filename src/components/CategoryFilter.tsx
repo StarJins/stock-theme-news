@@ -12,10 +12,9 @@ export default function CategoryFilter({
   onSelectCategory,
 }: CategoryFilterProps) {
   return (
-    <section className="mb-8">
-      <h2 className="mb-4 text-xl font-semibold">카테고리 필터</h2>
-
-      <div className="flex flex-wrap gap-3">
+    <section className="space-y-2">
+      <h2 className="text-lg font-semibold text-gray-900">카테고리 필터</h2>
+      <div className="flex flex-wrap gap-2">
         {categories.map((category) => {
           const isSelected = selectedCategory === category;
 

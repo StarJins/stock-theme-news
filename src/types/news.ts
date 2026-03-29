@@ -12,6 +12,8 @@ export type NewsItem = {
   summary: string;
   url: string;
   relevanceScore?: number | null;
+  relevancePercent?: number | null;
+  relevanceLabel?: string | null;
   publisher?: string | null;
   matchedQuery?: string | null;
 };

@@ -12,10 +12,9 @@ export default function ThemeSelector({
   onSelectTheme,
 }: ThemeSelectorProps) {
   return (
-    <section className="mb-8">
-      <h2 className="mb-4 text-xl font-semibold">테마 선택</h2>
-
-      <div className="flex flex-wrap gap-3">
+    <section className="space-y-2">
+      <h2 className="text-lg font-semibold text-gray-900">테마 선택</h2>
+      <div className="flex flex-wrap gap-2">
         {themes.map((theme) => {
           const isSelected = selectedTheme === theme;
 

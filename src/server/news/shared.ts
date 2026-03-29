@@ -483,6 +483,26 @@ export function computeRelevanceScore(
   return Number(finalScore.toFixed(2));
 }
 
+export function convertRelevanceScoreToPercent(score: number | null | undefined) {
+  if (score == null || Number.isNaN(score)) return null;
+
+  // 현재 점수 체계 기준 사용자용 정규화
+  const center = 12;
+  const scale = 4;
+
+  const percent = 100 / (1 + Math.exp(-(score - center) / scale));
+  return Math.max(0, Math.min(100, Math.round(percent)));
+}
+
+export function getRelevanceLabel(percent: number | null | undefined) {
+  if (percent == null) return null;
+  if (percent >= 85) return "매우 높음";
+  if (percent >= 70) return "높음";
+  if (percent >= 50) return "보통";
+  if (percent >= 30) return "낮음";
+  return "매우 낮음";
+}
+
 export function dedupeNewsItems<
   T extends {
     title: string;
@@ -529,7 +549,10 @@ export type RawNaverNewsItem = {
   pubDate: string;
 };
 
-export type ThemeCacheArticle = Omit<NewsItem, "id" | "relevanceScore"> & {
+export type ThemeCacheArticle = Omit<
+  NewsItem,
+  "id" | "relevanceScore" | "relevancePercent" | "relevanceLabel"
+> & {
   relevance_score?: number | null;
   matched_query?: string | null;
 };
@@ -579,13 +602,21 @@ export function buildPagedResponse(params: {
   const startIndex = (page - 1) * pageSize;
   const endIndex = startIndex + pageSize;
 
-  const pageArticles = articles.slice(startIndex, endIndex).map((article, index) => ({
-    ...article,
-    id: startIndex + index + 1,
-    relevanceScore: article.relevance_score ?? null,
-    publisher: article.publisher ?? null,
-    matchedQuery: article.matched_query ?? null,
-  }));
+  const pageArticles = articles.slice(startIndex, endIndex).map((article, index) => {
+    const relevanceScore = article.relevance_score ?? null;
+    const relevancePercent = convertRelevanceScoreToPercent(relevanceScore);
+    const relevanceLabel = getRelevanceLabel(relevancePercent);
+
+    return {
+      ...article,
+      id: startIndex + index + 1,
+      relevanceScore,
+      relevancePercent,
+      relevanceLabel,
+      publisher: article.publisher ?? null,
+      matchedQuery: article.matched_query ?? null,
+    };
+  });
 
   return {
     theme,

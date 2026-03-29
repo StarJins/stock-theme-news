@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CategoryFilter from "@/components/CategoryFilter";
 import NewsList from "@/components/NewsList";
 import SummaryBox from "@/components/SummaryBox";
@@ -11,6 +11,19 @@ import { Category, NewsItem, Theme } from "@/types/news";
 const themes: Theme[] = ["반도체", "AI", "방산"];
 const categories: Category[] = ["전체", "경제", "사회", "정치"];
 const PAGE_SIZE = 10;
+
+type CachedViewState = {
+  articles: NewsItem[];
+  summary: string;
+  page: number;
+  hasMore: boolean;
+  totalArticles: number;
+  generatedAt: string | null;
+};
+
+function makeViewKey(theme: Theme, category: Category) {
+  return `${theme}__${category}`;
+}
 
 export default function HomePage() {
   const [selectedTheme, setSelectedTheme] = useState<Theme>("반도체");
@@ -23,13 +36,26 @@ export default function HomePage() {
   const [totalArticles, setTotalArticles] = useState(0);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingView, setIsLoadingView] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [today, setToday] = useState("");
+
+  // 로딩 중에도 페이지 높이 유지
+  const [reservedContentHeight, setReservedContentHeight] = useState<number>(0);
 
   const observerRef = useRef<HTMLDivElement | null>(null);
+  const contentAreaRef = useRef<HTMLDivElement | null>(null);
+  const viewCacheRef = useRef<Record<string, CachedViewState>>({});
+  const filterRequestSeqRef = useRef(0);
+  const loadMoreRequestSeqRef = useRef(0);
+  const scrollRestoreYRef = useRef<number | null>(null);
 
-  const [today, setToday] = useState("");
+  const currentViewKey = useMemo(
+    () => makeViewKey(selectedTheme, selectedCategory),
+    [selectedTheme, selectedCategory]
+  );
+
   useEffect(() => {
     setToday(
       new Date().toLocaleDateString("ko-KR", {
@@ -40,39 +66,111 @@ export default function HomePage() {
     );
   }, []);
 
-  const resetAndLoadFirstPage = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setErrorMessage("");
-      setPage(1);
+  const measureCurrentContentHeight = useCallback(() => {
+    const el = contentAreaRef.current;
+    if (!el) return 0;
+    return Math.max(el.getBoundingClientRect().height, el.scrollHeight, 0);
+  }, []);
 
-      const data = await getThemeNews(
-        selectedTheme,
-        selectedCategory,
-        1,
-        PAGE_SIZE
-      );
+  const preserveScrollPosition = useCallback(() => {
+    scrollRestoreYRef.current = window.scrollY;
 
-      setArticles(data.articles);
-      setSummary(data.summary);
-      setHasMore(data.has_more);
-      setTotalArticles(data.total_articles);
-      setGeneratedAt(data.generated_at ?? null);
-    } catch (error) {
-      console.error(error);
-      setErrorMessage("뉴스 데이터를 불러오는 중 오류가 발생했습니다.");
-      setArticles([]);
-      setSummary("");
-      setHasMore(false);
-      setTotalArticles(0);
-      setGeneratedAt(null);
-    } finally {
-      setIsLoading(false);
+    requestAnimationFrame(() => {
+      if (scrollRestoreYRef.current != null) {
+        window.scrollTo({
+          top: scrollRestoreYRef.current,
+          behavior: "auto",
+        });
+      }
+    });
+  }, []);
+
+  const applyViewState = useCallback((view: CachedViewState) => {
+    setArticles(view.articles);
+    setSummary(view.summary);
+    setPage(view.page);
+    setHasMore(view.hasMore);
+    setTotalArticles(view.totalArticles);
+    setGeneratedAt(view.generatedAt);
+  }, []);
+
+  const clearVisibleNews = useCallback(() => {
+    setArticles([]);
+    setSummary("");
+    setPage(1);
+    setHasMore(false);
+    setTotalArticles(0);
+    setGeneratedAt(null);
+  }, []);
+
+  const loadFirstPageForCurrentView = useCallback(async () => {
+    const requestId = ++filterRequestSeqRef.current;
+    const cached = viewCacheRef.current[currentViewKey];
+
+    setErrorMessage("");
+
+    if (cached) {
+      applyViewState(cached);
+      setIsLoadingView(false);
+      setReservedContentHeight(0);
+      return;
     }
-  }, [selectedTheme, selectedCategory]);
+
+    const currentHeight = measureCurrentContentHeight();
+    if (currentHeight > 0) {
+      setReservedContentHeight(currentHeight);
+    }
+
+    preserveScrollPosition();
+    clearVisibleNews();
+    setIsLoadingView(true);
+
+    try {
+      const data = await getThemeNews(selectedTheme, selectedCategory, 1, PAGE_SIZE);
+
+      if (requestId !== filterRequestSeqRef.current) return;
+
+      const nextView: CachedViewState = {
+        articles: data.articles,
+        summary: data.summary,
+        page: 1,
+        hasMore: data.has_more,
+        totalArticles: data.total_articles,
+        generatedAt: data.generated_at ?? null,
+      };
+
+      viewCacheRef.current[currentViewKey] = nextView;
+      applyViewState(nextView);
+    } catch (error) {
+      if (requestId !== filterRequestSeqRef.current) return;
+
+      console.error(error);
+      clearVisibleNews();
+      setErrorMessage("새로운 뉴스를 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      if (requestId === filterRequestSeqRef.current) {
+        setIsLoadingView(false);
+
+        requestAnimationFrame(() => {
+          setReservedContentHeight(0);
+          preserveScrollPosition();
+        });
+      }
+    }
+  }, [
+    applyViewState,
+    clearVisibleNews,
+    currentViewKey,
+    measureCurrentContentHeight,
+    preserveScrollPosition,
+    selectedTheme,
+    selectedCategory,
+  ]);
 
   const loadMorePage = useCallback(async () => {
-    if (isLoading || isLoadingMore || !hasMore) return;
+    if (isLoadingView || isLoadingMore || !hasMore) return;
+
+    const requestId = ++loadMoreRequestSeqRef.current;
 
     try {
       setIsLoadingMore(true);
@@ -85,33 +183,51 @@ export default function HomePage() {
         PAGE_SIZE
       );
 
-      setArticles((prev) => [...prev, ...data.articles]);
+      if (requestId !== loadMoreRequestSeqRef.current) return;
+
+      const mergedArticles = [...articles, ...data.articles];
+
+      setArticles(mergedArticles);
       setPage(nextPage);
       setHasMore(data.has_more);
       setTotalArticles(data.total_articles);
       setGeneratedAt(data.generated_at ?? null);
+
+      viewCacheRef.current[currentViewKey] = {
+        articles: mergedArticles,
+        summary,
+        page: nextPage,
+        hasMore: data.has_more,
+        totalArticles: data.total_articles,
+        generatedAt: data.generated_at ?? null,
+      };
     } catch (error) {
+      if (requestId !== loadMoreRequestSeqRef.current) return;
       console.error(error);
     } finally {
-      setIsLoadingMore(false);
+      if (requestId === loadMoreRequestSeqRef.current) {
+        setIsLoadingMore(false);
+      }
     }
   }, [
+    articles,
+    currentViewKey,
     hasMore,
-    isLoading,
     isLoadingMore,
+    isLoadingView,
     page,
     selectedTheme,
     selectedCategory,
+    summary,
   ]);
 
   useEffect(() => {
-    resetAndLoadFirstPage();
-  }, [resetAndLoadFirstPage]);
+    loadFirstPageForCurrentView();
+  }, [loadFirstPageForCurrentView]);
 
   useEffect(() => {
     const target = observerRef.current;
-    if (!target) return;
-    if (!hasMore) return;
+    if (!target || !hasMore || isLoadingView) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -132,49 +248,61 @@ export default function HomePage() {
     return () => {
       observer.disconnect();
     };
-  }, [loadMorePage, hasMore]);
+  }, [hasMore, isLoadingView, loadMorePage]);
 
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-10 text-black">
-      <div className="mx-auto max-w-4xl">
-        <header className="mb-10">
-          <p className="mb-2 text-sm text-gray-500">{today}</p>
-          <h1 className="mb-3 text-3xl font-bold">오늘의 주식 테마 뉴스</h1>
-          <p className="text-gray-600">
-            원하는 테마를 선택하면 관련 뉴스 요약을 보여줍니다.
-          </p>
-        </header>
+    <main className="mx-auto min-h-screen max-w-5xl px-4 py-8">
+      <header className="mb-6 space-y-2">
+        <p className="text-sm text-gray-500">{today}</p>
+        <h1 className="text-3xl font-bold text-gray-900">오늘의 주식 테마 뉴스</h1>
+        <p className="text-gray-600">
+          원하는 테마를 선택하면 관련 뉴스 요약을 보여줍니다.
+        </p>
+      </header>
 
+      <div className="mb-6 space-y-4">
         <ThemeSelector
           themes={themes}
           selectedTheme={selectedTheme}
-          onSelectTheme={setSelectedTheme}
+          onSelectTheme={(theme) => {
+            if (theme === selectedTheme) return;
+            setSelectedTheme(theme);
+          }}
         />
 
         <CategoryFilter
           categories={categories}
           selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
+          onSelectCategory={(category) => {
+            if (category === selectedCategory) return;
+            setSelectedCategory(category);
+          }}
         />
+      </div>
 
-        {isLoading ? (
-          <section className="mb-8 rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-            <p className="text-base font-medium text-gray-700">
-              뉴스를 불러오는 중입니다...
-            </p>
-          </section>
-        ) : errorMessage ? (
-          <section className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-8 text-center shadow-sm">
-            <p className="text-base font-medium text-red-700">{errorMessage}</p>
-          </section>
+      <div ref={contentAreaRef}>
+        {isLoadingView ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none invisible"
+            style={{
+              minHeight: reservedContentHeight > 0 ? `${reservedContentHeight}px` : "280px",
+            }}
+          />
+        ) : errorMessage && articles.length === 0 ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-red-700">
+            {errorMessage}
+          </div>
         ) : (
           <>
-            <SummaryBox
-              theme={selectedTheme}
-              category={selectedCategory}
-              summary={summary}
-              generatedAt={generatedAt}
-            />
+            <div className="mb-3">
+              <SummaryBox
+                theme={selectedTheme}
+                category={selectedCategory}
+                summary={summary}
+                generatedAt={generatedAt}
+              />
+            </div>
 
             <NewsList
               articles={articles}
@@ -183,31 +311,26 @@ export default function HomePage() {
               totalArticles={totalArticles}
             />
 
-            <div
-              ref={observerRef}
-              className="py-6 text-center text-sm text-gray-500"
-            >
+            <div ref={observerRef} className="py-8 text-center text-sm text-gray-500">
               {isLoadingMore
                 ? "추가 뉴스를 불러오는 중입니다..."
                 : hasMore
                 ? "스크롤하면 다음 뉴스를 불러옵니다."
                 : "오늘 날짜 기준으로 더 불러올 뉴스가 없습니다."}
             </div>
-
-            {hasMore && !isLoadingMore && (
-              <div className="pb-8 text-center">
-                <button
-                  type="button"
-                  onClick={loadMorePage}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-100"
-                >
-                  더 보기
-                </button>
-              </div>
-            )}
           </>
         )}
       </div>
+
+      {isLoadingView && (
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
+          <div className="rounded-2xl border border-gray-200 bg-white/95 px-6 py-4 text-center shadow-xl backdrop-blur-sm">
+            <p className="text-xl font-semibold text-gray-800">
+              새로운 뉴스를 불러오는 중입니다...
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
