@@ -7,52 +7,17 @@ type SummaryBoxProps = {
   generatedAt?: string | null;
 };
 
-function formatGeneratedAt(value?: string | null) {
-  if (!value) return null;
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  }).format(date);
-}
-
-export default function SummaryBox({
-  theme,
-  category,
-  summary,
-  generatedAt,
-}: SummaryBoxProps) {
-  const formattedGeneratedAt = formatGeneratedAt(generatedAt);
+export default function SummaryBox({ summary }: SummaryBoxProps) {
+  const displaySummary =
+    summary.trim() || "오늘 수집된 기사 요약이 아직 없습니다.";
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
-        <span className="rounded-full bg-black px-3 py-1 text-sm font-semibold text-white">
-          선택 테마: {theme}
-        </span>
-        <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
-          카테고리: {category}
-        </span>
-        {formattedGeneratedAt && (
-          <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
-            최근 수집: {formattedGeneratedAt}
-          </span>
-        )}
-      </div>
+    <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
+      <h2 className="text-3xl font-bold text-gray-950">오늘의 한줄 요약</h2>
 
-      <h2 className="mb-3 text-lg font-semibold leading-7 text-gray-900">
-        오늘의 한줄 요약
-      </h2>
-
-      <p className="text-base leading-7 text-gray-800">{summary}</p>
+      <p className="mt-5 whitespace-pre-line text-lg leading-9 text-gray-800">
+        {displaySummary}
+      </p>
     </section>
   );
 }

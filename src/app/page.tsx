@@ -25,35 +25,50 @@ function makeViewKey(theme: Theme, category: Category) {
   return `${theme}__${category}`;
 }
 
+function formatGeneratedAt(value?: string | null) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  }).format(date);
+}
+
 export default function HomePage() {
   const [selectedTheme, setSelectedTheme] = useState<Theme>("반도체");
   const [selectedCategory, setSelectedCategory] = useState<Category>("전체");
-
   const [articles, setArticles] = useState<NewsItem[]>([]);
   const [summary, setSummary] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalArticles, setTotalArticles] = useState(0);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
-
   const [isLoadingView, setIsLoadingView] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [today, setToday] = useState("");
 
-  // 로딩 중에도 페이지 높이 유지
-  const [reservedContentHeight, setReservedContentHeight] = useState<number>(0);
-
   const observerRef = useRef<HTMLDivElement | null>(null);
-  const contentAreaRef = useRef<HTMLDivElement | null>(null);
   const viewCacheRef = useRef<Record<string, CachedViewState>>({});
   const filterRequestSeqRef = useRef(0);
   const loadMoreRequestSeqRef = useRef(0);
-  const scrollRestoreYRef = useRef<number | null>(null);
 
   const currentViewKey = useMemo(
     () => makeViewKey(selectedTheme, selectedCategory),
     [selectedTheme, selectedCategory]
+  );
+
+  const formattedGeneratedAt = useMemo(
+    () => formatGeneratedAt(generatedAt),
+    [generatedAt]
   );
 
   useEffect(() => {
@@ -64,25 +79,6 @@ export default function HomePage() {
         day: "numeric",
       })
     );
-  }, []);
-
-  const measureCurrentContentHeight = useCallback(() => {
-    const el = contentAreaRef.current;
-    if (!el) return 0;
-    return Math.max(el.getBoundingClientRect().height, el.scrollHeight, 0);
-  }, []);
-
-  const preserveScrollPosition = useCallback(() => {
-    scrollRestoreYRef.current = window.scrollY;
-
-    requestAnimationFrame(() => {
-      if (scrollRestoreYRef.current != null) {
-        window.scrollTo({
-          top: scrollRestoreYRef.current,
-          behavior: "auto",
-        });
-      }
-    });
   }, []);
 
   const applyViewState = useCallback((view: CachedViewState) => {
@@ -112,23 +108,18 @@ export default function HomePage() {
     if (cached) {
       applyViewState(cached);
       setIsLoadingView(false);
-      setReservedContentHeight(0);
       return;
     }
 
-    const currentHeight = measureCurrentContentHeight();
-    if (currentHeight > 0) {
-      setReservedContentHeight(currentHeight);
-    }
-
-    preserveScrollPosition();
     clearVisibleNews();
     setIsLoadingView(true);
 
     try {
       const data = await getThemeNews(selectedTheme, selectedCategory, 1, PAGE_SIZE);
 
-      if (requestId !== filterRequestSeqRef.current) return;
+      if (requestId !== filterRequestSeqRef.current) {
+        return;
+      }
 
       const nextView: CachedViewState = {
         articles: data.articles,
@@ -142,7 +133,9 @@ export default function HomePage() {
       viewCacheRef.current[currentViewKey] = nextView;
       applyViewState(nextView);
     } catch (error) {
-      if (requestId !== filterRequestSeqRef.current) return;
+      if (requestId !== filterRequestSeqRef.current) {
+        return;
+      }
 
       console.error(error);
       clearVisibleNews();
@@ -150,25 +143,20 @@ export default function HomePage() {
     } finally {
       if (requestId === filterRequestSeqRef.current) {
         setIsLoadingView(false);
-
-        requestAnimationFrame(() => {
-          setReservedContentHeight(0);
-          preserveScrollPosition();
-        });
       }
     }
   }, [
     applyViewState,
     clearVisibleNews,
     currentViewKey,
-    measureCurrentContentHeight,
-    preserveScrollPosition,
     selectedTheme,
     selectedCategory,
   ]);
 
   const loadMorePage = useCallback(async () => {
-    if (isLoadingView || isLoadingMore || !hasMore) return;
+    if (isLoadingView || isLoadingMore || !hasMore) {
+      return;
+    }
 
     const requestId = ++loadMoreRequestSeqRef.current;
 
@@ -183,7 +171,9 @@ export default function HomePage() {
         PAGE_SIZE
       );
 
-      if (requestId !== loadMoreRequestSeqRef.current) return;
+      if (requestId !== loadMoreRequestSeqRef.current) {
+        return;
+      }
 
       const mergedArticles = [...articles, ...data.articles];
 
@@ -202,7 +192,10 @@ export default function HomePage() {
         generatedAt: data.generated_at ?? null,
       };
     } catch (error) {
-      if (requestId !== loadMoreRequestSeqRef.current) return;
+      if (requestId !== loadMoreRequestSeqRef.current) {
+        return;
+      }
+
       console.error(error);
     } finally {
       if (requestId === loadMoreRequestSeqRef.current) {
@@ -227,11 +220,15 @@ export default function HomePage() {
 
   useEffect(() => {
     const target = observerRef.current;
-    if (!target || !hasMore || isLoadingView) return;
+
+    if (!target || !hasMore || isLoadingView) {
+      return;
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
+
         if (entry?.isIntersecting) {
           loadMorePage();
         }
@@ -250,86 +247,130 @@ export default function HomePage() {
     };
   }, [hasMore, isLoadingView, loadMorePage]);
 
+  const handleSelectTheme = (theme: Theme) => {
+    if (theme === selectedTheme) return;
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setSelectedTheme(theme);
+  };
+
+  const handleSelectCategory = (category: Category) => {
+    if (category === selectedCategory) return;
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setSelectedCategory(category);
+  };
+
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-4 py-8">
-      <header className="mb-6 space-y-2">
-        <p className="text-sm text-gray-500">{today}</p>
-        <h1 className="text-3xl font-bold text-gray-900">오늘의 주식 테마 뉴스</h1>
-        <p className="text-gray-600">
-          원하는 테마를 선택하면 관련 뉴스 요약을 보여줍니다.
-        </p>
-      </header>
+    <main className="mx-auto max-w-7xl px-5 pb-16 pt-6 sm:px-8 lg:px-10">
+      <p className="text-lg text-gray-500">{today}</p>
 
-      <div className="mb-6 space-y-4">
-        <ThemeSelector
-          themes={themes}
-          selectedTheme={selectedTheme}
-          onSelectTheme={(theme) => {
-            if (theme === selectedTheme) return;
-            setSelectedTheme(theme);
-          }}
-        />
+      <h1 className="mt-2 text-4xl font-bold tracking-tight text-gray-950 sm:text-5xl">
+        오늘의 주식 테마 뉴스
+      </h1>
 
-        <CategoryFilter
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={(category) => {
-            if (category === selectedCategory) return;
-            setSelectedCategory(category);
-          }}
-        />
-      </div>
+      <p className="mt-4 text-lg leading-8 text-gray-700 sm:text-xl">
+        원하는 테마를 선택하면 관련 뉴스 요약을 보여줍니다.
+      </p>
 
-      <div ref={contentAreaRef}>
-        {isLoadingView ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none invisible"
-            style={{
-              minHeight: reservedContentHeight > 0 ? `${reservedContentHeight}px` : "280px",
-            }}
-          />
-        ) : errorMessage && articles.length === 0 ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-red-700">
-            {errorMessage}
-          </div>
-        ) : (
-          <>
-            <div className="mb-3">
-              <SummaryBox
-                theme={selectedTheme}
-                category={selectedCategory}
-                summary={summary}
-                generatedAt={generatedAt}
-              />
+      <section className="sticky top-0 z-40 mt-8 border-b border-gray-200 bg-white/95 backdrop-blur">
+        <div className="py-4">
+          <div className="grid gap-6 xl:grid-cols-[auto_auto_1fr] xl:items-end">
+            <ThemeSelector
+              themes={themes}
+              selectedTheme={selectedTheme}
+              onSelectTheme={handleSelectTheme}
+              compact
+            />
+
+            <CategoryFilter
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={handleSelectCategory}
+              compact
+            />
+
+            <div className="xl:justify-self-end">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
+                <div className="flex flex-wrap items-center gap-2 text-sm sm:text-base">
+                  <span className="rounded-full bg-black px-3 py-1.5 font-semibold text-white">
+                    선택 테마: {selectedTheme}
+                  </span>
+
+                  <span className="rounded-full bg-blue-50 px-3 py-1.5 font-semibold text-blue-700">
+                    카테고리: {selectedCategory}
+                  </span>
+
+                  <span className="rounded-full bg-white px-3 py-1.5 text-gray-700 ring-1 ring-gray-200">
+                    현재 {articles.length}건 표시 / 전체 {totalArticles}건
+                  </span>
+
+                  {formattedGeneratedAt && (
+                    <span className="rounded-full bg-white px-3 py-1.5 text-gray-700 ring-1 ring-gray-200">
+                      최근 수집: {formattedGeneratedAt}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
+      </section>
 
+      {isLoadingView && articles.length === 0 ? (
+        <section className="mt-6 space-y-4">
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="h-8 w-48 animate-pulse rounded bg-gray-200" />
+            <div className="mt-5 space-y-3">
+              <div className="h-6 w-full animate-pulse rounded bg-gray-100" />
+              <div className="h-6 w-11/12 animate-pulse rounded bg-gray-100" />
+              <div className="h-6 w-10/12 animate-pulse rounded bg-gray-100" />
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="h-8 w-40 animate-pulse rounded bg-gray-200" />
+            <div className="mt-5 space-y-3">
+              <div className="h-5 w-full animate-pulse rounded bg-gray-100" />
+              <div className="h-5 w-10/12 animate-pulse rounded bg-gray-100" />
+              <div className="h-5 w-9/12 animate-pulse rounded bg-gray-100" />
+            </div>
+          </div>
+        </section>
+      ) : errorMessage && articles.length === 0 ? (
+        <section className="mt-6 rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700 shadow-sm">
+          {errorMessage}
+        </section>
+      ) : (
+        <>
+          <div className="mt-6">
+            <SummaryBox
+              theme={selectedTheme}
+              category={selectedCategory}
+              summary={summary}
+              generatedAt={generatedAt}
+            />
+          </div>
+
+          <div className="mt-6">
             <NewsList
               articles={articles}
               selectedTheme={selectedTheme}
               selectedCategory={selectedCategory}
               totalArticles={totalArticles}
             />
-
-            <div ref={observerRef} className="py-8 text-center text-sm text-gray-500">
-              {isLoadingMore
-                ? "추가 뉴스를 불러오는 중입니다..."
-                : hasMore
-                ? "스크롤하면 다음 뉴스를 불러옵니다."
-                : "오늘 날짜 기준으로 더 불러올 뉴스가 없습니다."}
-            </div>
-          </>
-        )}
-      </div>
-
-      {isLoadingView && (
-        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
-          <div className="rounded-2xl border border-gray-200 bg-white/95 px-6 py-4 text-center shadow-xl backdrop-blur-sm">
-            <p className="text-xl font-semibold text-gray-800">
-              새로운 뉴스를 불러오는 중입니다...
-            </p>
           </div>
-        </div>
+
+          <div ref={observerRef} className="h-10" />
+
+          <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+            {isLoadingMore
+              ? "추가 뉴스를 불러오는 중입니다..."
+              : hasMore
+              ? "스크롤하면 다음 뉴스를 불러옵니다."
+              : "오늘 날짜 기준으로 더 불러올 뉴스가 없습니다."}
+          </div>
+        </>
       )}
     </main>
   );
