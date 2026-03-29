@@ -115,7 +115,12 @@ export default function HomePage() {
     setIsLoadingView(true);
 
     try {
-      const data = await getThemeNews(selectedTheme, selectedCategory, 1, PAGE_SIZE);
+      const data = await getThemeNews(
+        selectedTheme,
+        selectedCategory,
+        1,
+        PAGE_SIZE
+      );
 
       if (requestId !== filterRequestSeqRef.current) {
         return;
@@ -274,44 +279,44 @@ export default function HomePage() {
       </p>
 
       <section className="sticky top-0 z-40 mt-8 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="py-4">
-          <div className="grid gap-6 xl:grid-cols-[auto_auto_1fr] xl:items-end">
-            <ThemeSelector
-              themes={themes}
-              selectedTheme={selectedTheme}
-              onSelectTheme={handleSelectTheme}
-              compact
-            />
+        <div className="space-y-3 py-3">
+          <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max items-center gap-3">
+              <ThemeSelector
+                themes={themes}
+                selectedTheme={selectedTheme}
+                onSelectTheme={handleSelectTheme}
+                compact
+              />
 
-            <CategoryFilter
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onSelectCategory={handleSelectCategory}
-              compact
-            />
+              <CategoryFilter
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onSelectCategory={handleSelectCategory}
+                compact
+              />
+            </div>
+          </div>
 
-            <div className="xl:justify-self-end">
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
-                <div className="flex flex-wrap items-center gap-2 text-sm sm:text-base">
-                  <span className="rounded-full bg-black px-3 py-1.5 font-semibold text-white">
-                    선택 테마: {selectedTheme}
-                  </span>
+          <div className="overflow-x-auto pt-1 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max items-center gap-2 whitespace-nowrap">
+              <span className="shrink-0 rounded-full bg-black px-3 py-1.5 text-sm font-semibold text-white">
+                선택 테마: {selectedTheme}
+              </span>
 
-                  <span className="rounded-full bg-blue-50 px-3 py-1.5 font-semibold text-blue-700">
-                    카테고리: {selectedCategory}
-                  </span>
+              <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-700">
+                카테고리: {selectedCategory}
+              </span>
 
-                  <span className="rounded-full bg-white px-3 py-1.5 text-gray-700 ring-1 ring-gray-200">
-                    현재 {articles.length}건 표시 / 전체 {totalArticles}건
-                  </span>
+              <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-sm text-gray-700 border border-gray-200">
+                현재 {articles.length}건 표시 / 전체 {totalArticles}건
+              </span>
 
-                  {formattedGeneratedAt && (
-                    <span className="rounded-full bg-white px-3 py-1.5 text-gray-700 ring-1 ring-gray-200">
-                      최근 수집: {formattedGeneratedAt}
-                    </span>
-                  )}
-                </div>
-              </div>
+              {formattedGeneratedAt && (
+                <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-sm text-gray-700 border border-gray-200">
+                  최근 수집: {formattedGeneratedAt}
+                </span>
+              )}
             </div>
           </div>
         </div>
