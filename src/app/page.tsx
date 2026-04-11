@@ -8,7 +8,7 @@ import ThemeSelector from "@/components/ThemeSelector";
 import { getThemeNews } from "@/lib/api";
 import { Category, NewsItem, Theme } from "@/types/news";
 
-const themes: Theme[] = ["반도체", "AI", "방산"];
+const themes: Theme[] = ["반도체", "AI", "방산", "원전", "배터리", "건설", "부동산"];
 const categories: Category[] = ["전체", "경제", "사회", "정치"];
 const PAGE_SIZE = 10;
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getThemeNewsPage } from "@/server/news/service";
 import { Category, Theme } from "@/types/news";
 
-const THEMES: Theme[] = ["반도체", "AI", "방산"];
+const THEMES: Theme[] = ["반도체", "AI", "방산", "원전", "배터리", "건설", "부동산"];
 const CATEGORIES: Category[] = ["전체", "경제", "사회", "정치"];
 
 function isTheme(value: string): value is Theme {
