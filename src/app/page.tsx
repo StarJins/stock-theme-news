@@ -19,6 +19,7 @@ type CachedViewState = {
   hasMore: boolean;
   totalArticles: number;
   generatedAt: string | null;
+  expiresAt: string | null;
 };
 
 function makeViewKey(theme: Theme, category: Category) {
@@ -40,6 +41,15 @@ function formatGeneratedAt(value?: string | null) {
     second: "2-digit",
     hour12: true,
   }).format(date);
+}
+
+function isExpired(value?: string | null) {
+  if (!value) return true;
+
+  const expiresAt = new Date(value);
+  if (Number.isNaN(expiresAt.getTime())) return true;
+
+  return Date.now() >= expiresAt.getTime();
 }
 
 export default function HomePage() {
@@ -102,16 +112,22 @@ export default function HomePage() {
   const loadFirstPageForCurrentView = useCallback(async () => {
     const requestId = ++filterRequestSeqRef.current;
     const cached = viewCacheRef.current[currentViewKey];
+    const hasFreshCache = cached && !isExpired(cached.expiresAt);
 
     setErrorMessage("");
 
-    if (cached) {
+    if (hasFreshCache && cached) {
       applyViewState(cached);
       setIsLoadingView(false);
       return;
     }
 
-    clearVisibleNews();
+    if (cached) {
+      applyViewState(cached);
+    } else {
+      clearVisibleNews();
+    }
+
     setIsLoadingView(true);
 
     try {
@@ -133,6 +149,7 @@ export default function HomePage() {
         hasMore: data.has_more,
         totalArticles: data.total_articles,
         generatedAt: data.generated_at ?? null,
+        expiresAt: data.expires_at ?? null,
       };
 
       viewCacheRef.current[currentViewKey] = nextView;
@@ -195,6 +212,7 @@ export default function HomePage() {
         hasMore: data.has_more,
         totalArticles: data.total_articles,
         generatedAt: data.generated_at ?? null,
+        expiresAt: data.expires_at ?? null,
       };
     } catch (error) {
       if (requestId !== loadMoreRequestSeqRef.current) {

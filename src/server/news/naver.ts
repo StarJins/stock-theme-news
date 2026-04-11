@@ -36,10 +36,14 @@ function parsePubDate(pubDate: string) {
 export async function searchNaverNewsByQuery(
   query: string,
   display = NAVER_PAGE_SIZE,
-  start = 1
+  start = 1,
+  options?: {
+    bypassCache?: boolean;
+  }
 ): Promise<{ total: number; display: number; items: RawNaverNewsItem[] }> {
   const clientId = process.env.NAVER_CLIENT_ID;
   const clientSecret = process.env.NAVER_CLIENT_SECRET;
+  const bypassCache = options?.bypassCache ?? false;
 
   if (!clientId || !clientSecret) {
     throw new Error(
@@ -57,7 +61,7 @@ export async function searchNaverNewsByQuery(
   const requestUrl = `${NAVER_NEWS_API_URL}?${params.toString()}`;
 
   console.log(
-    `[naver-fetch] query=${query} start=${start} display=${display} at=${new Date().toISOString()}`
+    `[naver-fetch] query=${query} start=${start} display=${display} bypassCache=${bypassCache} at=${new Date().toISOString()}`
   );
 
   const response = await fetch(requestUrl, {
@@ -67,10 +71,14 @@ export async function searchNaverNewsByQuery(
       "X-Naver-Client-Secret": clientSecret,
       Accept: "application/json",
     },
-    cache: "force-cache",
-    next: {
-      revalidate: CACHE_TTL_SECONDS,
-    },
+    cache: bypassCache ? "no-store" : "force-cache",
+    ...(bypassCache
+      ? {}
+      : {
+          next: {
+            revalidate: CACHE_TTL_SECONDS,
+          },
+        }),
   });
 
   if (!response.ok) {
@@ -104,17 +112,41 @@ export async function searchNaverNewsByQuery(
 }
 
 export async function collectTodayNewsUntilOld(query: string) {
+  return collectTodayNewsUntilOldInternal(query, {
+    bypassCache: false,
+  });
+}
+
+export async function collectTodayNewsUntilOldBypassingCache(query: string) {
+  return collectTodayNewsUntilOldInternal(query, {
+    bypassCache: true,
+  });
+}
+
+async function collectTodayNewsUntilOldInternal(
+  query: string,
+  options: {
+    bypassCache: boolean;
+  }
+) {
   const allTodayItems: RawNaverNewsItem[] = [];
   let start = 1;
   let total = 0;
   let olderPageStreak = 0;
+  let pagesFetched = 0;
 
   while (start <= NAVER_MAX_START) {
-    const page = await searchNaverNewsByQuery(query, NAVER_PAGE_SIZE, start);
+    const page = await searchNaverNewsByQuery(query, NAVER_PAGE_SIZE, start, {
+      bypassCache: options.bypassCache,
+    });
+    pagesFetched += 1;
 
     total = page.total;
 
     if (!page.items.length) {
+      console.log(
+        `[naver-collect] query=${query} start=${start} bypassCache=${options.bypassCache} total=${total} pageItems=0 todayItems=0 olderPageStreak=${olderPageStreak} stop=empty-page`
+      );
       break;
     }
 
@@ -123,7 +155,14 @@ export async function collectTodayNewsUntilOld(query: string) {
 
     const hasOlderItems = page.items.some((item) => !isTodayKst(item.pubDate));
 
+    console.log(
+      `[naver-collect] query=${query} start=${start} bypassCache=${options.bypassCache} total=${total} pageItems=${page.items.length} todayItems=${todayItems.length} accumulatedToday=${allTodayItems.length} hasOlderItems=${hasOlderItems} olderPageStreak=${olderPageStreak}`
+    );
+
     if (todayItems.length === 0 && STOP_ON_EMPTY_TODAY_PAGE) {
+      console.log(
+        `[naver-collect] query=${query} start=${start} bypassCache=${options.bypassCache} stop=empty-today-page`
+      );
       break;
     }
 
@@ -134,11 +173,18 @@ export async function collectTodayNewsUntilOld(query: string) {
     }
 
     if (olderPageStreak > MAX_OLDER_PAGE_STREAK) {
+      console.log(
+        `[naver-collect] query=${query} start=${start} bypassCache=${options.bypassCache} stop=older-page-streak olderPageStreak=${olderPageStreak}`
+      );
       break;
     }
 
     start += NAVER_PAGE_SIZE;
   }
+
+  console.log(
+    `[naver-collect-summary] query=${query} bypassCache=${options.bypassCache} total=${total} pagesFetched=${pagesFetched} todayItems=${allTodayItems.length}`
+  );
 
   return {
     total,
