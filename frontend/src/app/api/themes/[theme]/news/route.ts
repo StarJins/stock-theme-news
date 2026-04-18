@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Category, Theme } from "@/types/news";
-import { THEME_CATEGORIES } from "@/server/news/shared";
+import { THEME_CATEGORIES } from "@/constants/theme";
 
 const THEMES: Theme[] = [
   "반도체",

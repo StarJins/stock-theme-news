@@ -7,7 +7,7 @@ import SummaryBox from "@/components/SummaryBox";
 import ThemeSelector from "@/components/ThemeSelector";
 import { getThemeNews } from "@/lib/api";
 import { Category, NewsItem, Theme } from "@/types/news";
-import { THEME_CATEGORIES } from "@/server/news/shared";
+import { THEME_CATEGORIES } from "@/constants/theme";
 
 const themes: Theme[] = [
   "반도체",
