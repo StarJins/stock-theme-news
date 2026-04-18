@@ -2,15 +2,17 @@
 
 개선 사항 생각난 것
 1. 각 테마별 카테코리 개선해야됨(각 테마에 맞는 주제로)
-2. 이데일리 등 뉴스 언론사 종류 선택할 수 있게 추가하기
-3. 오늘의 한줄 요약 현재 제목 나열 -> 이를 어떻게 바꿀 수 있을지
-4. 뉴스 카드에 네이버 api에서 제공해주는 description을 전부 보여줘야 할지?
-5. 현재 10분단위 캐싱인데, 새로고침 버튼을 추가할지?
+2. 오늘의 한줄 요약 현재 제목 나열 -> 이를 어떻게 바꿀 수 있을지
+3. 뉴스 카드에 네이버 api에서 제공해주는 description을 전부 보여줘야 할지?
+4. 현재 10분단위 캐싱인데, 새로고침 버튼을 추가할지?
 
 cache run command
 - npm install
-- npm run build
 - npm run build && set NEXT_PRIVATE_DEBUG_CACHE=1 && npm run start
+
+backend 실행
+- pip install -r requirements.txt
+- uvicorn main:app --reload --port 8000
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
