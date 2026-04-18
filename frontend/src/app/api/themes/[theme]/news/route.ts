@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getThemeNewsPage } from "@/server/news/service";
 import { Category, Theme } from "@/types/news";
 import { THEME_CATEGORIES } from "@/server/news/shared";
 
@@ -51,12 +50,19 @@ export async function GET(
         ? pageSizeParam
         : 10;
 
-    const data = await getThemeNewsPage({
-      theme: rawTheme,
-      category,
-      page,
-      pageSize,
+    // 파이썬 백엔드 API 호출 (로컬 개발: 8000포트, 배포 시: BACKEND_API_URL 환경변수 사용)
+    const backendUrl = process.env.BACKEND_API_URL || "http://localhost:8000";
+    const apiUrl = new URL(`${backendUrl}/api/themes/${encodeURIComponent(rawTheme)}/news`);
+    apiUrl.searchParams.set("category", category);
+    apiUrl.searchParams.set("page", page.toString());
+    apiUrl.searchParams.set("page_size", pageSize.toString());
+
+    const response = await fetch(apiUrl.toString(), {
+      cache: "no-store", // Next.js 캐싱을 우회하고 항상 파이썬 백엔드의 최신 캐시를 사용
     });
+
+    if (!response.ok) throw new Error(`백엔드 응답 오류: ${response.status}`);
+    const data = await response.json();
 
     return NextResponse.json(data, { status: 200 });
   } catch (error) {

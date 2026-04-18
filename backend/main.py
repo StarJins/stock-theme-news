@@ -90,12 +90,16 @@ def get_theme_news(
             "title": a["title"],
             "url": a["url"],
             "description": a["description"],
+            "summary": a["description"],
             "pubDate": a["pubDate"],
+            "publishedAt": a["pubDate"],
+            "source": "네이버 뉴스 검색",
+            "theme": theme,
             "category": a["category"],
             "relevanceScore": score,
             "relevancePercent": percent,
             "relevanceLabel": label,
-            "publisher": None,
+            "publisher": "네이버 뉴스 검색",
             "matchedQuery": None
         })
         
