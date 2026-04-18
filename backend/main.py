@@ -5,6 +5,9 @@ from apscheduler.triggers.interval import IntervalTrigger
 from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
+import math
+
+from crawler import fetch_naver_news, get_cached_theme_news
 
 # .env 파일 로드 (나중에 네이버 API 키 등을 관리)
 load_dotenv()
@@ -13,8 +16,7 @@ load_dotenv()
 scheduler = BackgroundScheduler()
 
 def fetch_naver_news_job():
-    print("▶ 네이버 뉴스 크롤링 및 카테고리 분류 작업 실행 중... (10분 주기)")
-    # TODO: 여기에 crawler.py 와 processor.py 를 호출하여 뉴스를 캐싱하는 로직이 들어갈 예정입니다.
+    fetch_naver_news()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -60,14 +62,52 @@ def get_theme_news(
     page: int = Query(1, ge=1, description="페이지 번호"),
     page_size: int = Query(10, ge=1, le=20, description="페이지당 기사 수")
 ):
-    # TODO: fetch_naver_news_job() 이 메모리(또는 DB)에 캐싱해 둔 데이터를 읽어서 반환하도록 수정 예정
+    cache_doc = get_cached_theme_news(theme)
+    if not cache_doc:
+        raise HTTPException(status_code=404, detail="아직 데이터가 수집되지 않았거나 존재하지 않는 테마입니다.")
+        
+    articles = cache_doc["articles"]
+    if category != "전체":
+        articles = [a for a in articles if a["category"] == category]
+        
+    total_articles = len(articles)
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    
+    page_articles = []
+    for i, a in enumerate(articles[start_idx:end_idx]):
+        score = a.get("relevance_score", 0)
+        percent = max(0, min(100, round(100 / (1 + math.exp(-(score - 12) / 4)))))
+        
+        if percent >= 85: label = "매우 높음"
+        elif percent >= 70: label = "높음"
+        elif percent >= 50: label = "보통"
+        elif percent >= 30: label = "낮음"
+        else: label = "매우 낮음"
+        
+        page_articles.append({
+            "id": start_idx + i + 1,
+            "title": a["title"],
+            "url": a["url"],
+            "description": a["description"],
+            "pubDate": a["pubDate"],
+            "category": a["category"],
+            "relevanceScore": score,
+            "relevancePercent": percent,
+            "relevanceLabel": label,
+            "publisher": None,
+            "matchedQuery": None
+        })
+        
     return {
         "theme": theme,
         "category": category,
-        "summary": f"{theme} 테마의 {category} 카테고리에 대한 임시 데이터입니다.",
-        "articles": [],
+        "summary": cache_doc["summary"],
+        "articles": page_articles,
         "page": page,
         "page_size": page_size,
-        "has_more": False,
-        "total_articles": 0,
+        "has_more": end_idx < total_articles,
+        "total_articles": total_articles,
+        "generated_at": cache_doc["fetched_at"],
+        "cache_hit": True
     }
