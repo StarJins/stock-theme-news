@@ -7,6 +7,7 @@ import SummaryBox from "@/components/SummaryBox";
 import ThemeSelector from "@/components/ThemeSelector";
 import { getThemeNews } from "@/lib/api";
 import { Category, NewsItem, Theme } from "@/types/news";
+import { THEME_CATEGORIES } from "@/server/news/shared";
 
 const themes: Theme[] = [
   "반도체",
@@ -19,7 +20,6 @@ const themes: Theme[] = [
   "우주항공",
   "전쟁",
 ];
-const categories: Category[] = ["전체", "경제", "사회", "정치"];
 const PAGE_SIZE = 10;
 
 type CachedViewState = {
@@ -75,6 +75,8 @@ export default function HomePage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [today, setToday] = useState("");
+
+  const categories = ["전체", ...THEME_CATEGORIES[selectedTheme]] as Category[];
 
   const observerRef = useRef<HTMLDivElement | null>(null);
   const viewCacheRef = useRef<Record<string, CachedViewState>>({});
@@ -285,6 +287,7 @@ export default function HomePage() {
 
     window.scrollTo({ top: 0, behavior: "smooth" });
     setSelectedTheme(theme);
+    setSelectedCategory("전체" as Category);
   };
 
   const handleSelectCategory = (category: Category) => {

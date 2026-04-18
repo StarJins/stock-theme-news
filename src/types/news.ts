@@ -1,6 +1,6 @@
 export type Theme = "반도체" | "AI" | "방산" | "원전" | "배터리" | "건설" | "부동산" | "우주항공" | "전쟁";
-export type Category = "전체" | "경제" | "사회" | "정치";
-export type NewsCategory = "경제" | "사회" | "정치";
+export type Category = string;
+export type NewsCategory = string;
 
 export type NewsItem = {
   id: number;

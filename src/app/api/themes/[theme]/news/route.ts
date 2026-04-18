@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getThemeNewsPage } from "@/server/news/service";
 import { Category, Theme } from "@/types/news";
+import { THEME_CATEGORIES } from "@/server/news/shared";
 
 const THEMES: Theme[] = [
   "반도체",
@@ -13,14 +14,9 @@ const THEMES: Theme[] = [
   "우주항공",
   "전쟁",
 ];
-const CATEGORIES: Category[] = ["전체", "경제", "사회", "정치"];
 
 function isTheme(value: string): value is Theme {
   return THEMES.includes(value as Theme);
-}
-
-function isCategory(value: string): value is Category {
-  return CATEGORIES.includes(value as Category);
 }
 
 export async function GET(
@@ -44,7 +40,9 @@ export async function GET(
       request.nextUrl.searchParams.get("page_size") ?? "10"
     );
 
-    const category = isCategory(categoryParam) ? categoryParam : "전체";
+    // 선택된 테마에 맞는 카테고리 목록 가져오기
+    const validCategories = ["전체", ...(THEME_CATEGORIES[rawTheme] || [])];
+    const category = validCategories.includes(categoryParam) ? (categoryParam as Category) : "전체";
     const page = Number.isFinite(pageParam) && pageParam >= 1 ? pageParam : 1;
     const pageSize =
       Number.isFinite(pageSizeParam) &&

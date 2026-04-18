@@ -10,7 +10,7 @@
 cache run command
 - npm install
 - npm run build
-- set NEXT_PRIVATE_DEBUG_CACHE=1 && npm run start
+- npm run build && set NEXT_PRIVATE_DEBUG_CACHE=1 && npm run start
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
