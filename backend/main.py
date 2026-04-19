@@ -31,8 +31,9 @@ async def lifespan(app: FastAPI):
     )
     scheduler.start()
     
-    # 서버가 시작될 때 즉시 1회 데이터를 가져오도록 실행
-    fetch_naver_news_job()
+    # 서버 부팅을 방해하지 않도록 별도 스레드에서 초기 크롤링 실행
+    import threading
+    threading.Thread(target=fetch_naver_news_job, daemon=True).start()
     
     yield
     
