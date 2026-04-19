@@ -43,9 +43,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # CORS 설정 (프론트엔드와의 통신 허용)
+frontend_url = os.getenv("FRONTEND_URL", "*")
+origins = [frontend_url] if frontend_url != "*" else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 개발 중에는 모든 도메인 허용. 실제 배포 시 프론트엔드 도메인으로 제한하는 것이 좋습니다.
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
