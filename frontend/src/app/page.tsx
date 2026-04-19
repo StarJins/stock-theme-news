@@ -80,6 +80,7 @@ export default function HomePage() {
 
   const observerRef = useRef<HTMLDivElement | null>(null);
   const viewCacheRef = useRef<Record<string, CachedViewState>>({});
+  const abortControllerRef = useRef<AbortController | null>(null);
   const filterRequestSeqRef = useRef(0);
   const loadMoreRequestSeqRef = useRef(0);
 
@@ -122,6 +123,13 @@ export default function HomePage() {
   }, []);
 
   const loadFirstPageForCurrentView = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     const requestId = ++filterRequestSeqRef.current;
     const cached = viewCacheRef.current[currentViewKey];
     const hasFreshCache = cached && !isExpired(cached.expiresAt);
@@ -147,7 +155,8 @@ export default function HomePage() {
         selectedTheme,
         selectedCategory,
         1,
-        PAGE_SIZE
+        PAGE_SIZE,
+        abortController.signal
       );
 
       if (requestId !== filterRequestSeqRef.current) {
@@ -167,7 +176,10 @@ export default function HomePage() {
       viewCacheRef.current[currentViewKey] = nextView;
       applyViewState(nextView);
     } catch (error) {
-      if (requestId !== filterRequestSeqRef.current) {
+      if (
+        requestId !== filterRequestSeqRef.current ||
+        (error instanceof Error && error.name === "AbortError")
+      ) {
         return;
       }
 

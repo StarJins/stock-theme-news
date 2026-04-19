@@ -59,6 +59,7 @@ export async function GET(
 
     const response = await fetch(apiUrl.toString(), {
       cache: "no-store", // Next.js 캐싱을 우회하고 항상 파이썬 백엔드의 최신 캐시를 사용
+      signal: request.signal,
     });
 
     if (!response.ok) throw new Error(`백엔드 응답 오류: ${response.status}`);

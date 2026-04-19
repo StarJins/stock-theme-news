@@ -8,7 +8,7 @@
 
 cache run command
 - npm install
-- npm run build && set NEXT_PRIVATE_DEBUG_CACHE=1 && npm run start
+- set NEXT_PRIVATE_DEBUG_CACHE=1 && npm run dev
 
 backend 실행
 - pip install -r requirements.txt

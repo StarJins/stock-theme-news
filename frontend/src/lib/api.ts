@@ -4,7 +4,8 @@ export async function getThemeNews(
   theme: Theme,
   category: Category,
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  signal?: AbortSignal
 ): Promise<ThemeNewsResponse> {
   const searchParams = new URLSearchParams({
     category,
@@ -16,6 +17,7 @@ export async function getThemeNews(
     `/api/themes/${encodeURIComponent(theme)}/news?${searchParams.toString()}`,
     {
       method: "GET",
+      signal,
     }
   );
 
