@@ -4,6 +4,7 @@ import time
 import httpx
 import html
 import threading
+import math
 from datetime import datetime
 
 from processor import (
@@ -26,6 +27,15 @@ def strip_html_and_entities(text: str) -> str:
     clean = re.sub(r'<[^>]+>', '', text)
     # &quot;, &amp; 등 HTML 엔티티를 실제 문자로 변환
     return html.unescape(clean)
+
+def get_relevance_group(score: float) -> int:
+    # 1: 매우 높음, 높음 (>= 70%)
+    # 2: 보통 (>= 50%)
+    # 3: 낮음, 매우 낮음 (< 50%)
+    percent = max(0, min(100, round(100 / (1 + math.exp(-(score - 12) / 4)))))
+    if percent >= 70: return 1
+    elif percent >= 50: return 2
+    else: return 3
 
 def fetch_single_theme(theme: str, profile: dict, url: str, headers: dict, today_str: str, client: httpx.Client) -> dict:
     print(f"  - [{theme}] 테마 기사 수집 중...")
@@ -127,8 +137,11 @@ def fetch_single_theme(theme: str, profile: dict, url: str, headers: dict, today
             "relevance_score": score
         })
     
-    # 정렬: 1순위 적합도 점수(내림차순), 2순위 최신순(내림차순)
-    processed_articles.sort(key=lambda x: (x["relevance_score"], x["pubDate"]), reverse=True)
+    # 정렬: 1순위 적합도 그룹(1그룹->3그룹 순), 2순위 최신순(내림차순)
+    # reverse=True 상태에서 정렬 기준:
+    # 첫 번째 요소: -get_relevance_group(...) -> 1그룹(-1) > 2그룹(-2) > 3그룹(-3) 이 되므로 그룹순으로 먼저 묶임
+    # 두 번째 요소: pubDate 문자열 -> 시간이 늦을수록(최신일수록) 문자열 비교에서 크므로 최신순 정렬됨
+    processed_articles.sort(key=lambda x: (-get_relevance_group(x["relevance_score"]), x["pubDate"]), reverse=True)
     
     top_titles = [a["title"] for a in processed_articles[:3]]
     summary = f"오늘 {theme} 테마 기사 {len(processed_articles)}건을 수집했고, 상위 이슈는 {'; '.join(top_titles)} 입니다." if processed_articles else f"{theme} 테마의 오늘자 관련 기사를 찾지 못했습니다."
