@@ -331,7 +331,10 @@ export default function HomePage() {
                 onSelectTheme={handleSelectTheme}
                 compact
               />
-
+            </div>
+          </div>
+          <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max items-center gap-3">
               <CategoryFilter
                 categories={categories}
                 selectedCategory={selectedCategory}

@@ -1,18 +1,5 @@
 # 주식 투자를 위한 오늘의 뉴스 모음
 
-개선 사항 생각난 것
-1. 각 테마별 카테코리 개선해야됨(각 테마에 맞는 주제로)
-2. 오늘의 한줄 요약 현재 제목 나열 -> 이를 어떻게 바꿀 수 있을지
-3. 뉴스 카드에 네이버 api에서 제공해주는 description을 전부 보여줘야 할지?
-
-cache run command
-- npm install
-- set NEXT_PRIVATE_DEBUG_CACHE=1 && npm run dev
-
-backend 실행
-- pip install -r requirements.txt
-- uvicorn main:app --reload --port 8000
-
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
