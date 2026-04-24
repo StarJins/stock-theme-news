@@ -24,9 +24,9 @@ async def lifespan(app: FastAPI):
     print("서버가 시작되었습니다. 뉴스 수집 스케줄러를 등록합니다.")
     scheduler.add_job(
         fetch_naver_news_job,
-        trigger=IntervalTrigger(minutes=30),
+        trigger=IntervalTrigger(minutes=10),
         id='fetch_news_job',
-        name='Fetch Naver News every 30 minutes',
+        name='Fetch Naver News every 10 minutes',
         replace_existing=True
     )
     scheduler.start()
