@@ -185,7 +185,13 @@ export default function HomePage() {
 
       console.error(error);
       clearVisibleNews();
-      setErrorMessage("새로운 뉴스를 불러오는 중 오류가 발생했습니다.");
+      
+      const errMessage = error instanceof Error ? error.message : String(error);
+      if (errMessage.includes("404") || errMessage.includes("수집 중") || (error as any)?.status === 404 || (error as any)?.response?.status === 404) {
+        setErrorMessage("현재 테마별 뉴스를 수집 중 입니다. 잠시 후 다시 시도해주세요.");
+      } else {
+        setErrorMessage("새로운 뉴스를 불러오는 중 오류가 발생했습니다.");
+      }
     } finally {
       if (requestId === filterRequestSeqRef.current) {
         setIsLoadingView(false);
@@ -389,7 +395,13 @@ export default function HomePage() {
           </div>
         </section>
       ) : errorMessage && articles.length === 0 ? (
-        <section className="mt-6 rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700 shadow-sm">
+        <section
+          className={`mt-6 rounded-3xl border p-6 shadow-sm ${
+            errorMessage.includes("수집 중")
+              ? "border-blue-200 bg-blue-50 text-blue-700"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
           {errorMessage}
         </section>
       ) : (

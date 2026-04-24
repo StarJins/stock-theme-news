@@ -68,7 +68,7 @@ def get_theme_news(
 ):
     cache_doc = get_cached_theme_news(theme)
     if not cache_doc:
-        raise HTTPException(status_code=404, detail="아직 데이터가 수집되지 않았거나 존재하지 않는 테마입니다.")
+        raise HTTPException(status_code=404, detail="현재 테마별 뉴스를 수집 중 입니다. 잠시 후 다시 시도해주세요.")
         
     articles = cache_doc["articles"]
     if category != "전체":
