@@ -1,0 +1,22 @@
+name: Deploy to Oracle Cloud
+
+on:
+  push:
+    branches: [ "main" ] # main 브랜치에 push될 때 실행
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH로 서버 접속 및 배포 실행
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          # 실제 서버에서 실행될 명령어들입니다.
+          script: |
+            cd ~/stock-theme-news/backend
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt
