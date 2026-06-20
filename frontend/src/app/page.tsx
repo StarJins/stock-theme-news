@@ -62,6 +62,25 @@ function isExpired(value?: string | null) {
   return Date.now() >= expiresAt.getTime();
 }
 
+function getErrorStatus(error: unknown) {
+  if (typeof error !== "object" || error === null) return null;
+
+  const errorWithStatus = error as {
+    status?: unknown;
+    response?: { status?: unknown };
+  };
+
+  if (typeof errorWithStatus.status === "number") {
+    return errorWithStatus.status;
+  }
+
+  if (typeof errorWithStatus.response?.status === "number") {
+    return errorWithStatus.response.status;
+  }
+
+  return null;
+}
+
 export default function HomePage() {
   const [selectedTheme, setSelectedTheme] = useState<Theme>("반도체");
   const [selectedCategory, setSelectedCategory] = useState<Category>("전체");
@@ -187,7 +206,8 @@ export default function HomePage() {
       clearVisibleNews();
       
       const errMessage = error instanceof Error ? error.message : String(error);
-      if (errMessage.includes("404") || errMessage.includes("수집 중") || (error as any)?.status === 404 || (error as any)?.response?.status === 404) {
+      const errStatus = getErrorStatus(error);
+      if (errMessage.includes("404") || errMessage.includes("수집 중") || errStatus === 404) {
         setErrorMessage("현재 테마별 뉴스를 수집 중 입니다. 잠시 후 다시 시도해주세요.");
       } else {
         setErrorMessage("새로운 뉴스를 불러오는 중 오류가 발생했습니다.");
@@ -407,12 +427,7 @@ export default function HomePage() {
       ) : (
         <>
           <div className="mt-6">
-            <SummaryBox
-              theme={selectedTheme}
-              category={selectedCategory}
-              summary={summary}
-              generatedAt={generatedAt}
-            />
+            <SummaryBox />
           </div>
 
           <div className="mt-6">

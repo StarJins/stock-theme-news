@@ -1,23 +1,17 @@
-import { Category, Theme } from "@/types/news";
-
-type SummaryBoxProps = {
-  theme: Theme;
-  category: Category;
-  summary: string;
-  generatedAt?: string | null;
-};
-
-export default function SummaryBox({ summary }: SummaryBoxProps) {
-  const displaySummary =
-    summary.trim() || "오늘 수집된 기사 요약이 아직 없습니다.";
-
+export default function SummaryBox() {
   return (
-    <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
-      <h2 className="text-3xl font-bold text-gray-950">오늘의 한줄 요약</h2>
+    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <h2 className="text-xl font-semibold text-gray-950">뉴스 정렬 기준</h2>
 
-      <p className="mt-5 whitespace-pre-line text-lg leading-9 text-gray-800">
-        {displaySummary}
-      </p>
+      <div className="mt-3 space-y-2 text-sm leading-6 text-gray-700">
+        <p>
+          연관도 기준으로 70% 이상, 50% 이상, 50% 미만 순서로 묶어 보여줍니다.
+        </p>
+
+        <p>
+          같은 묶음 안에서는 최신 뉴스가 먼저 표시됩니다.
+        </p>
+      </div>
     </section>
   );
 }
